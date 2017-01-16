@@ -19,9 +19,11 @@ use std::u32;
 use std::collections::HashMap;
 
 extern crate libc;
+extern crate combine;
 
 pub mod ebpf;
 pub mod helpers;
+pub mod parser;
 mod verifier;
 mod jit;
 
