@@ -12,8 +12,8 @@ fn instruction<I>(input: I) -> ParseResult<Instruction, I>
     where I: Stream<Item=char>
 {
     let word = many1(letter());
-    let mut reg = char('r').with(many1(digit())).map(|t: String| t.parse::<i32>().unwrap());
-    let mut integer = many1(digit()).map(|t: String| t.parse::<i32>().unwrap());
+    let reg = char('r').with(many1(digit())).map(|t: String| t.parse::<i32>().unwrap());
+    let integer = many1(digit()).map(|t: String| t.parse::<i32>().unwrap());
     let mut line = (word.skip(spaces()),
                     reg.skip(spaces()),
                     char(',').skip(spaces()),
