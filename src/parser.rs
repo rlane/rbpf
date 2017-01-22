@@ -1,17 +1,17 @@
-use combine;
 use combine::char::{char, letter, spaces, digit};
-use combine::{between, many1, parser, sep_by, Parser};
-use combine::primitives::{State, Stream, ParseResult};
+use combine::{many1, parser, Parser};
+use combine::primitives::{Stream, ParseResult};
+use combine::ParseError;
 
 #[derive(Debug, PartialEq)]
-enum Instruction {
+pub enum Instruction {
     Addi(String, i32, i32),
 }
 
 fn instruction<I>(input: I) -> ParseResult<Instruction, I>
     where I: Stream<Item=char>
 {
-    let mut word = many1(letter());
+    let word = many1(letter());
     let mut reg = char('r').with(many1(digit())).map(|t: String| t.parse::<i32>().unwrap());
     let mut integer = many1(digit()).map(|t: String| t.parse::<i32>().unwrap());
     let mut line = (word.skip(spaces()),
@@ -22,9 +22,18 @@ fn instruction<I>(input: I) -> ParseResult<Instruction, I>
     line.parse_stream(input)
 }
 
+pub fn parse<I>(input: I) -> Result<Vec<Instruction>, ParseError<I>>
+    where I: Stream<Item=char>
+{
+   match parser(instruction).parse(input) {
+     Ok((inst, _)) => Ok(vec!(inst)),
+     Err(err) => Err(err)
+   }
+}
+
 #[test]
-fn test_parse() {
-  let result = combine::parser(instruction).parse("addi r1, 2");
-  let expected = 0;
-  assert_eq!(result, Ok((Instruction::Addi("addi".to_string(), 1, 2), "")));
+fn test_addi() {
+  assert_eq!(
+    parse("addi r1, 2"),
+    Ok(vec!(Instruction::Addi("addi".to_string(), 1, 2))));
 }
