@@ -5,10 +5,9 @@ use combine::ParseError;
 
 #[derive(Debug, PartialEq)]
 pub enum Operand {
-    Register(i32),
-    Offset(i32),
-    Immediate(i32),
-    Memory(i32, i32),
+    Register(i64),
+    Integer(i64),
+    Memory(i64, i64),
 }
 
 #[derive(Debug, PartialEq)]
@@ -24,17 +23,17 @@ fn ident<I>(input: I) -> ParseResult<String, I>
 }
 
 // TODO hexadecimal, +/-.
-fn integer<I>(input: I) -> ParseResult<i32, I>
+fn integer<I>(input: I) -> ParseResult<i64, I>
     where I: Stream<Item = char>
 {
-    many1(digit()).map(|t: String| t.parse::<i32>().unwrap()).parse_stream(input)
+    many1(digit()).map(|t: String| t.parse::<i64>().unwrap()).parse_stream(input)
 }
 
 fn operand<I>(input: I) -> ParseResult<Operand, I>
     where I: Stream<Item = char>
 {
-    let register = char('r').with(parser(integer)).map(|x: i32| Operand::Register(x));
-    let immediate = parser(integer).map(|x: i32| Operand::Immediate(x));
+    let register = char('r').with(parser(integer)).map(|x: i64| Operand::Register(x));
+    let immediate = parser(integer).map(|x: i64| Operand::Integer(x));
     // TODO memory
     register.or(immediate).parse_stream(input)
 }
@@ -98,14 +97,14 @@ fn test_instruction() {
     assert_eq!(parser(instruction).parse("call 2"),
                Ok((Instruction {
                        name: "call".to_string(),
-                       operands: vec![Operand::Immediate(2)],
+                       operands: vec![Operand::Integer(2)],
                    },
                    "")));
 
     assert_eq!(parser(instruction).parse("addi r1, 2"),
                Ok((Instruction {
                        name: "addi".to_string(),
-                       operands: vec![Operand::Register(1), Operand::Immediate(2)],
+                       operands: vec![Operand::Register(1), Operand::Integer(2)],
                    },
                    "")));
 }
