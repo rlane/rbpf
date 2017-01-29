@@ -1,5 +1,5 @@
 use combine::char::{char, spaces, digit, alpha_num};
-use combine::{many1, parser, Parser, sep_by};
+use combine::{many1, parser, Parser, sep_by, optional};
 use combine::primitives::{Stream, ParseResult};
 use combine::ParseError;
 
@@ -34,8 +34,13 @@ fn operand<I>(input: I) -> ParseResult<Operand, I>
 {
     let register = char('r').with(parser(integer)).map(|x: i64| Operand::Register(x));
     let immediate = parser(integer).map(|x: i64| Operand::Integer(x));
-    // TODO memory
-    register.or(immediate).parse_stream(input)
+    let memory = (char('['),
+                  char('r'),
+                  parser(integer),
+                  optional(char('+').with(parser(integer))),
+                  char(']'))
+        .map(|t: (_, _, i64, Option<i64>, _)| Operand::Memory(t.2, t.3.unwrap_or(0)));
+    register.or(immediate).or(memory).parse_stream(input)
 }
 
 fn instruction<I>(input: I) -> ParseResult<Instruction, I>
@@ -87,6 +92,12 @@ fn test_operand() {
     assert_eq!(parser(operand).parse("0"), Ok((Operand::Integer(0), "")));
 
     assert_eq!(parser(operand).parse("42"), Ok((Operand::Integer(42), "")));
+
+    assert_eq!(parser(operand).parse("[r1]"),
+               Ok((Operand::Memory(1, 0), "")));
+
+    assert_eq!(parser(operand).parse("[r3+5]"),
+               Ok((Operand::Memory(3, 5), "")));
 }
 
 #[test]
