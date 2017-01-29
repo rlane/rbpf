@@ -4,8 +4,17 @@ use combine::primitives::{Stream, ParseResult};
 use combine::ParseError;
 
 #[derive(Debug, PartialEq)]
-pub enum Instruction {
-    Addi(String, i32, i32),
+pub enum Operand {
+    Register(i32),
+    Offset(i32),
+    Immediate(i32),
+    Memory(i32, i32),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Instruction {
+    pub name: String,
+    pub operands: Vec<Operand>,
 }
 
 fn ident<I>(input: I) -> ParseResult<String, I>
@@ -34,7 +43,10 @@ fn instruction<I>(input: I) -> ParseResult<Instruction, I>
         parser(register).skip(spaces()),
         char(',').skip(spaces()),
         parser(integer).skip(spaces()))
-            .map(|t| Instruction::Addi(t.0, t.1, t.3)).parse_stream(input)
+            .map(|t| Instruction {
+                name: t.0,
+                operands: vec!(Operand::Register(t.1), Operand::Immediate(t.3)),
+            }).parse_stream(input)
 }
 
 pub fn parse<I>(input: I) -> Result<Vec<Instruction>, ParseError<I>>
@@ -87,5 +99,5 @@ fn test_register() {
 fn test_addi() {
   assert_eq!(
     parse("addi r1, 2"),
-    Ok(vec!(Instruction::Addi("addi".to_string(), 1, 2))));
+    Ok(vec!(Instruction { name: "addi".to_string(), operands: vec!(Operand::Register(1), Operand::Immediate(2))})));
 }
