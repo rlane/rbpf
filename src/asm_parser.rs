@@ -30,23 +30,25 @@ fn integer<I>(input: I) -> ParseResult<i32, I>
     many1(digit()).map(|t: String| t.parse::<i32>().unwrap()).parse_stream(input)
 }
 
-fn register<I>(input: I) -> ParseResult<i32, I>
+fn operand<I>(input: I) -> ParseResult<Operand, I>
     where I: Stream<Item = char>
 {
-    char('r').with(parser(integer)).parse_stream(input)
+    let register = char('r').with(parser(integer)).map(|x: i32| Operand::Register(x));
+    let immediate = parser(integer).map(|x: i32| Operand::Immediate(x));
+    register.or(immediate).parse_stream(input)
 }
 
 fn instruction<I>(input: I) -> ParseResult<Instruction, I>
     where I: Stream<Item = char>
 {
     (parser(ident).skip(spaces()),
-     parser(register).skip(spaces()),
+     parser(operand).skip(spaces()),
      char(',').skip(spaces()),
-     parser(integer).skip(spaces()))
+     parser(operand).skip(spaces()))
         .map(|t| {
             Instruction {
                 name: t.0,
-                operands: vec![Operand::Register(t.1), Operand::Immediate(t.3)],
+                operands: vec![t.1, t.3],
             }
         })
         .parse_stream(input)
@@ -79,10 +81,11 @@ fn test_integer() {
 }
 
 #[test]
-fn test_register() {
-    assert_eq!(parser(register).parse("r0"), Ok((0, "")));
+fn test_operand() {
+    assert_eq!(parser(operand).parse("r0"), Ok((Operand::Register(0), "")));
 
-    assert_eq!(parser(register).parse("r15"), Ok((15, "")));
+    assert_eq!(parser(operand).parse("r15"),
+               Ok((Operand::Register(15), "")));
 }
 
 #[test]
