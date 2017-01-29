@@ -1,5 +1,5 @@
 use combine::char::{char, spaces, digit, alpha_num};
-use combine::{many1, parser, Parser};
+use combine::{many1, parser, Parser, sep_by};
 use combine::primitives::{Stream, ParseResult};
 use combine::ParseError;
 
@@ -23,7 +23,7 @@ fn ident<I>(input: I) -> ParseResult<String, I>
     many1(alpha_num()).parse_stream(input)
 }
 
-// TODO hexadecimal.
+// TODO hexadecimal, +/-.
 fn integer<I>(input: I) -> ParseResult<i32, I>
     where I: Stream<Item = char>
 {
@@ -35,20 +35,18 @@ fn operand<I>(input: I) -> ParseResult<Operand, I>
 {
     let register = char('r').with(parser(integer)).map(|x: i32| Operand::Register(x));
     let immediate = parser(integer).map(|x: i32| Operand::Immediate(x));
+    // TODO memory
     register.or(immediate).parse_stream(input)
 }
 
 fn instruction<I>(input: I) -> ParseResult<Instruction, I>
     where I: Stream<Item = char>
 {
-    (parser(ident).skip(spaces()),
-     parser(operand).skip(spaces()),
-     char(',').skip(spaces()),
-     parser(operand).skip(spaces()))
+    (parser(ident).skip(spaces()), sep_by(parser(operand), char(',').skip(spaces())))
         .map(|t| {
             Instruction {
                 name: t.0,
-                operands: vec![t.1, t.3],
+                operands: t.1,
             }
         })
         .parse_stream(input)
@@ -89,10 +87,34 @@ fn test_operand() {
 }
 
 #[test]
-fn test_addi() {
-    assert_eq!(parse("addi r1, 2"),
+fn test_instruction() {
+    assert_eq!(parser(instruction).parse("exit"),
+               Ok((Instruction {
+                       name: "exit".to_string(),
+                       operands: vec![],
+                   },
+                   "")));
+
+    assert_eq!(parser(instruction).parse("call 2"),
+               Ok((Instruction {
+                       name: "call".to_string(),
+                       operands: vec![Operand::Immediate(2)],
+                   },
+                   "")));
+
+    assert_eq!(parser(instruction).parse("addi r1, 2"),
+               Ok((Instruction {
+                       name: "addi".to_string(),
+                       operands: vec![Operand::Register(1), Operand::Immediate(2)],
+                   },
+                   "")));
+}
+
+#[test]
+fn test_parse() {
+    assert_eq!(parse("exit"),
                Ok(vec![Instruction {
-                           name: "addi".to_string(),
-                           operands: vec![Operand::Register(1), Operand::Immediate(2)],
-                       }]));
+                           name: "exit".to_string(),
+                           operands: vec![],
+                       }]))
 }
