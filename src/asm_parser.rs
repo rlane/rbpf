@@ -18,86 +18,78 @@ pub struct Instruction {
 }
 
 fn ident<I>(input: I) -> ParseResult<String, I>
-    where I: Stream<Item=char>
+    where I: Stream<Item = char>
 {
     many1(alpha_num()).parse_stream(input)
 }
 
 // TODO hexadecimal.
 fn integer<I>(input: I) -> ParseResult<i32, I>
-    where I: Stream<Item=char>
+    where I: Stream<Item = char>
 {
     many1(digit()).map(|t: String| t.parse::<i32>().unwrap()).parse_stream(input)
 }
 
 fn register<I>(input: I) -> ParseResult<i32, I>
-    where I: Stream<Item=char>
+    where I: Stream<Item = char>
 {
     char('r').with(parser(integer)).parse_stream(input)
 }
 
 fn instruction<I>(input: I) -> ParseResult<Instruction, I>
-    where I: Stream<Item=char>
+    where I: Stream<Item = char>
 {
     (parser(ident).skip(spaces()),
-        parser(register).skip(spaces()),
-        char(',').skip(spaces()),
-        parser(integer).skip(spaces()))
-            .map(|t| Instruction {
+     parser(register).skip(spaces()),
+     char(',').skip(spaces()),
+     parser(integer).skip(spaces()))
+        .map(|t| {
+            Instruction {
                 name: t.0,
-                operands: vec!(Operand::Register(t.1), Operand::Immediate(t.3)),
-            }).parse_stream(input)
+                operands: vec![Operand::Register(t.1), Operand::Immediate(t.3)],
+            }
+        })
+        .parse_stream(input)
 }
 
 pub fn parse<I>(input: I) -> Result<Vec<Instruction>, ParseError<I>>
-    where I: Stream<Item=char>
+    where I: Stream<Item = char>
 {
-   match parser(instruction).parse(input) {
-     Ok((inst, _)) => Ok(vec!(inst)),
-     Err(err) => Err(err)
-   }
+    match parser(instruction).parse(input) {
+        Ok((inst, _)) => Ok(vec![inst]),
+        Err(err) => Err(err),
+    }
 }
 
 #[test]
 fn test_ident() {
-  assert_eq!(
-    parser(ident).parse("nop"),
-    Ok(("nop".to_string(), "")));
+    assert_eq!(parser(ident).parse("nop"), Ok(("nop".to_string(), "")));
 
-  assert_eq!(
-    parser(ident).parse("add32"),
-    Ok(("add32".to_string(), "")));
+    assert_eq!(parser(ident).parse("add32"), Ok(("add32".to_string(), "")));
 
-  assert_eq!(
-    parser(ident).parse("add32*"),
-    Ok(("add32".to_string(), "*")));
+    assert_eq!(parser(ident).parse("add32*"),
+               Ok(("add32".to_string(), "*")));
 }
 
 #[test]
 fn test_integer() {
-  assert_eq!(
-    parser(integer).parse("0"),
-    Ok((0, "")));
+    assert_eq!(parser(integer).parse("0"), Ok((0, "")));
 
-  assert_eq!(
-    parser(integer).parse("42"),
-    Ok((42, "")));
+    assert_eq!(parser(integer).parse("42"), Ok((42, "")));
 }
 
 #[test]
 fn test_register() {
-  assert_eq!(
-    parser(register).parse("r0"),
-    Ok((0, "")));
+    assert_eq!(parser(register).parse("r0"), Ok((0, "")));
 
-  assert_eq!(
-    parser(register).parse("r15"),
-    Ok((15, "")));
+    assert_eq!(parser(register).parse("r15"), Ok((15, "")));
 }
 
 #[test]
 fn test_addi() {
-  assert_eq!(
-    parse("addi r1, 2"),
-    Ok(vec!(Instruction { name: "addi".to_string(), operands: vec!(Operand::Register(1), Operand::Immediate(2))})));
+    assert_eq!(parse("addi r1, 2"),
+               Ok(vec![Instruction {
+                           name: "addi".to_string(),
+                           operands: vec![Operand::Register(1), Operand::Immediate(2)],
+                       }]));
 }
