@@ -83,6 +83,10 @@ fn test_operand() {
 
     assert_eq!(parser(operand).parse("r15"),
                Ok((Operand::Register(15), "")));
+
+    assert_eq!(parser(operand).parse("0"), Ok((Operand::Integer(0), "")));
+
+    assert_eq!(parser(operand).parse("42"), Ok((Operand::Integer(42), "")));
 }
 
 #[test]
