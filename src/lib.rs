@@ -23,7 +23,7 @@ extern crate combine;
 
 pub mod ebpf;
 pub mod helpers;
-pub mod parser;
+pub mod asm_parser;
 mod verifier;
 mod jit;
 
