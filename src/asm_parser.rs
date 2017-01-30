@@ -1,5 +1,5 @@
 use combine::char::{char, spaces, digit, alpha_num};
-use combine::{many1, parser, Parser, sep_by, optional};
+use combine::{many1, parser, Parser, sep_by, optional, one_of};
 use combine::primitives::{Stream, ParseResult};
 use combine::ParseError;
 
@@ -22,11 +22,17 @@ fn ident<I>(input: I) -> ParseResult<String, I>
     many1(alpha_num()).parse_stream(input)
 }
 
-// TODO hexadecimal, +/-.
+// TODO hexadecimal
 fn integer<I>(input: I) -> ParseResult<i64, I>
     where I: Stream<Item = char>
 {
-    many1(digit()).map(|t: String| t.parse::<i64>().unwrap()).parse_stream(input)
+    let sign = optional(one_of("-+".chars())).map(|x| match x {
+        Some('-') => -1,
+        _ => 1,
+    });
+    (sign, many1(digit()))
+        .map(|(s, t): (i64, String)| s * t.parse::<i64>().unwrap())
+        .parse_stream(input)
 }
 
 fn operand<I>(input: I) -> ParseResult<Operand, I>
@@ -80,6 +86,10 @@ fn test_integer() {
     assert_eq!(parser(integer).parse("0"), Ok((0, "")));
 
     assert_eq!(parser(integer).parse("42"), Ok((42, "")));
+
+    assert_eq!(parser(integer).parse("+42"), Ok((42, "")));
+
+    assert_eq!(parser(integer).parse("-42"), Ok((-42, "")));
 }
 
 #[test]
