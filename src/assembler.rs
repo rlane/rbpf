@@ -76,7 +76,7 @@ fn assemble_one(instruction: &Instruction,
                 instruction_map: &HashMap<&str, (u8, InstructionType)>)
                 -> Result<Insn, String> {
     match instruction_map.get(instruction.name.as_str()) {
-        Some(&(ref opc, ref inst_type)) => encode(*opc, *inst_type, &instruction.operands),
+        Some(&(opc, inst_type)) => encode(opc, inst_type, &instruction.operands),
         None => Err("Invalid instruction".to_string()),
     }
 }
