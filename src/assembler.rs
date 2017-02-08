@@ -11,13 +11,14 @@ use asm_parser::{Instruction, Operand, parse};
 use ebpf;
 use ebpf::Insn;
 use std::collections::HashMap;
-use self::InstructionType::{AluBinary, AluUnary, Memory, Jump, NoOperand};
+use self::InstructionType::{AluBinary, AluUnary, Mem, Jump, NoOperand};
+use asm_parser::Operand::{Integer, Memory, Register};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum InstructionType {
     AluBinary,
     AluUnary,
-    Memory,
+    Mem,
     Jump,
     NoOperand,
 }
@@ -27,45 +28,32 @@ fn instruction_table() -> Vec<(&'static str, (u8, InstructionType))> {
          ("add64", (ebpf::BPF_ALU64 | ebpf::BPF_ADD, AluBinary))]
 }
 
+fn inst(opc: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Insn, String> {
+    Ok(Insn {
+        opc: opc,
+        dst: dst as u8,
+        src: src as u8,
+        off: off as i16,
+        imm: imm as i32,
+    })
+}
+
 fn encode_alu_binary(opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
     if operands.len() != 2 {
         return Err(format!("Expected 2 operands, got {:?}", operands));
     }
     match (operands[0], operands[1]) {
-        (Operand::Register(dst), Operand::Register(src)) => {
-            Ok(Insn {
-                opc: opc | ebpf::BPF_X,
-                dst: dst as u8,
-                src: src as u8,
-                off: 0,
-                imm: 0,
-            })
-        }
-        (Operand::Register(dst), Operand::Integer(imm)) => {
-            Ok(Insn {
-                opc: opc | ebpf::BPF_K,
-                dst: dst as u8,
-                src: 0,
-                off: 0,
-                imm: imm as i32,
-            })
-        }
+        (Register(dst), Register(src)) => inst(opc | ebpf::BPF_X, dst, src, 0, 0),
+        (Register(dst), Integer(imm)) => inst(opc | ebpf::BPF_K, dst, 0, 0, imm),
         _ => Err(format!("Unexpected operands {:?}", operands)),
     }
 }
-
 
 fn encode_no_operand(opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
     if operands.len() != 0 {
         return Err(format!("Expected 0 operands, got {:?}", operands));
     }
-    Ok(Insn {
-        opc: opc,
-        dst: 0,
-        src: 0,
-        off: 0,
-        imm: 0,
-    })
+    inst(opc, 0, 0, 0, 0)
 }
 
 fn assemble_one(instruction: &Instruction,
