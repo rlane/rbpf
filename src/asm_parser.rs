@@ -13,7 +13,7 @@ use combine::{between, eof, many, many1, one_of, optional, Parser, ParseError, P
 use combine::primitives::{Error, Info};
 
 /// Operand of an instruction.
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Operand {
     /// Register number.
     Register(i64),

@@ -11,52 +11,79 @@ use asm_parser::{Instruction, Operand, parse};
 use ebpf;
 use ebpf::Insn;
 use std::collections::HashMap;
+use self::InstructionType::{AluBinary, AluUnary, Memory, Jump, Misc};
 
-fn instruction_table() -> Vec<(&'static str, u8)> {
-    vec![("exit", ebpf::BPF_EXIT), ("add64", ebpf::BPF_ALU64 | ebpf::BPF_ADD)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum InstructionType {
+    AluBinary,
+    AluUnary,
+    Memory,
+    Jump,
+    Misc,
 }
 
-fn encode(opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
-    let mut opc: u8 = opc;
-    let mut dst: u8 = 0;
-    let mut src: u8 = 0;
-    let mut imm: i32 = 0;
-    let mut seen_dst = false;
-    for operand in operands {
-        match operand {
-            &Operand::Register(x) => {
-                if seen_dst {
-                    src = x as u8;
-                    opc |= ebpf::BPF_X;
-                } else {
-                    dst = x as u8;
-                    seen_dst = true;
-                }
+fn instruction_table() -> Vec<(&'static str, (u8, InstructionType))> {
+    vec![("exit", (ebpf::BPF_EXIT, Misc)), ("add64", (ebpf::BPF_ALU64 | ebpf::BPF_ADD, AluBinary))]
+}
+
+fn encode(opc: u8, inst_type: InstructionType, operands: &Vec<Operand>) -> Result<Insn, String> {
+    match inst_type {
+        AluBinary => {
+            if operands.len() != 2 {
+                return Err(format!("Expected 2 operands, got {:?}", operands));
             }
-            &Operand::Integer(x) => imm = x as i32,
-            _ => panic!("unexpected operand"),
+            match (operands[0], operands[1]) {
+                (Operand::Register(dst), Operand::Register(src)) => {
+                    Ok(Insn {
+                        opc: opc | ebpf::BPF_X,
+                        dst: dst as u8,
+                        src: src as u8,
+                        off: 0,
+                        imm: 0,
+                    })
+                }
+                (Operand::Register(dst), Operand::Integer(imm)) => {
+                    Ok(Insn {
+                        opc: opc | ebpf::BPF_K,
+                        dst: dst as u8,
+                        src: 0,
+                        off: 0,
+                        imm: imm as i32,
+                    })
+                }
+                _ => Err(format!("Unexpected operands {:?}", operands)),
+            }
         }
+        Misc => {
+            match opc {
+                ebpf::BPF_EXIT => {
+                    Ok(Insn {
+                        opc: opc,
+                        dst: 0,
+                        src: 0,
+                        off: 0,
+                        imm: 0,
+                    })
+                }
+                _ => Err(format!("Unexpected opcode {}", opc)),
+            }
+        }
+        _ => Err(format!("Unexpected instruction type {:?}", inst_type)),
     }
-    Ok(Insn {
-        opc: opc,
-        dst: dst,
-        src: src,
-        off: 0,
-        imm: imm,
-    })
 }
 
 fn assemble_one(instruction: &Instruction,
-                instruction_map: &HashMap<&str, u8>)
+                instruction_map: &HashMap<&str, (u8, InstructionType)>)
                 -> Result<Insn, String> {
     match instruction_map.get(instruction.name.as_str()) {
-        Some(opc) => encode(*opc, &instruction.operands),
+        Some(&(ref opc, ref inst_type)) => encode(*opc, *inst_type, &instruction.operands),
         None => Err("Invalid instruction".to_string()),
     }
 }
 
 fn assemble_internal(instructions: &[Instruction]) -> Result<Vec<Insn>, String> {
-    let instruction_map: HashMap<&str, u8> = instruction_table().iter().cloned().collect();
+    let instruction_map: HashMap<&str, (u8, InstructionType)> =
+        instruction_table().iter().cloned().collect();
     let mut result = vec![];
     for instruction in instructions {
         match assemble_one(instruction, &instruction_map) {
