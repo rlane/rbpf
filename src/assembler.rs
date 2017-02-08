@@ -12,9 +12,8 @@ use ebpf;
 use ebpf::Insn;
 use std::collections::HashMap;
 
-fn instruction_table() -> Vec<(String, u8)> {
-    vec![("exit".to_string(), ebpf::BPF_EXIT),
-         ("add64".to_string(), ebpf::BPF_ALU64 | ebpf::BPF_ADD)]
+fn instruction_table() -> Vec<(&'static str, u8)> {
+    vec![("exit", ebpf::BPF_EXIT), ("add64", ebpf::BPF_ALU64 | ebpf::BPF_ADD)]
 }
 
 fn encode(opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
@@ -48,16 +47,16 @@ fn encode(opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
 }
 
 fn assemble_one(instruction: &Instruction,
-                instruction_map: &HashMap<String, u8>)
+                instruction_map: &HashMap<&str, u8>)
                 -> Result<Insn, String> {
-    match instruction_map.get(&instruction.name) {
+    match instruction_map.get(instruction.name.as_str()) {
         Some(opc) => encode(*opc, &instruction.operands),
         None => Err("Invalid instruction".to_string()),
     }
 }
 
 fn assemble_internal(instructions: &[Instruction]) -> Result<Vec<Insn>, String> {
-    let instruction_map: HashMap<String, u8> = instruction_table().iter().cloned().collect();
+    let instruction_map: HashMap<&str, u8> = instruction_table().iter().cloned().collect();
     let mut result = vec![];
     for instruction in instructions {
         match assemble_one(instruction, &instruction_map) {
