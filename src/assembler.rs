@@ -11,14 +11,16 @@ use asm_parser::{Instruction, Operand, parse};
 use ebpf;
 use ebpf::Insn;
 use std::collections::HashMap;
-use self::InstructionType::{AluBinary, AluUnary, Mem, Jump, NoOperand};
+use self::InstructionType::{AluBinary, AluUnary, Load, StoreImm, StoreReg, Jump, NoOperand};
 use asm_parser::Operand::{Integer, Memory, Register};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum InstructionType {
     AluBinary,
     AluUnary,
-    Mem,
+    Load,
+    StoreImm,
+    StoreReg,
     Jump,
     NoOperand,
 }
@@ -26,7 +28,10 @@ enum InstructionType {
 fn instruction_table() -> Vec<(&'static str, (u8, InstructionType))> {
     vec![("exit", (ebpf::BPF_EXIT, NoOperand)),
          ("add64", (ebpf::BPF_ALU64 | ebpf::BPF_ADD, AluBinary)),
-         ("neg64", (ebpf::BPF_ALU64 | ebpf::BPF_NEG, AluUnary))]
+         ("neg64", (ebpf::BPF_ALU64 | ebpf::BPF_NEG, AluUnary)),
+         ("ldxw", (ebpf::LD_W_REG, Load)),
+         ("stw", (ebpf::ST_W_IMM, StoreImm)),
+         ("stxw", (ebpf::ST_W_REG, StoreReg))]
 }
 
 fn inst(opc: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Insn, String> {
@@ -60,6 +65,36 @@ fn encode_alu_unary(opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
     }
 }
 
+fn encode_load(opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
+    if operands.len() != 2 {
+        return Err(format!("Expected 2 operands, got {:?}", operands));
+    }
+    match (operands[0], operands[1]) {
+        (Register(dst), Memory(src, off)) => inst(opc, dst, src, off, 0),
+        _ => Err(format!("Unexpected operands {:?}", operands)),
+    }
+}
+
+fn encode_store_imm(opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
+    if operands.len() != 2 {
+        return Err(format!("Expected 2 operands, got {:?}", operands));
+    }
+    match (operands[0], operands[1]) {
+        (Memory(dst, off), Integer(imm)) => inst(opc, dst, 0, off, imm),
+        _ => Err(format!("Unexpected operands {:?}", operands)),
+    }
+}
+
+fn encode_store_reg(opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
+    if operands.len() != 2 {
+        return Err(format!("Expected 2 operands, got {:?}", operands));
+    }
+    match (operands[0], operands[1]) {
+        (Memory(dst, off), Register(src)) => inst(opc, dst, src, off, 0),
+        _ => Err(format!("Unexpected operands {:?}", operands)),
+    }
+}
+
 fn encode_no_operand(opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
     if operands.len() != 0 {
         return Err(format!("Expected 0 operands, got {:?}", operands));
@@ -75,6 +110,9 @@ fn assemble_one(instruction: &Instruction,
             match inst_type {
                 AluBinary => encode_alu_binary(opc, &instruction.operands),
                 AluUnary => encode_alu_unary(opc, &instruction.operands),
+                Load => encode_load(opc, &instruction.operands),
+                StoreImm => encode_store_imm(opc, &instruction.operands),
+                StoreReg => encode_store_reg(opc, &instruction.operands),
                 NoOperand => encode_no_operand(opc, &instruction.operands),
                 _ => Err(format!("Unexpected instruction type {:?}", inst_type)),
             }
