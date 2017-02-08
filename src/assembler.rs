@@ -16,19 +16,21 @@ fn instruction_table() -> Vec<(String, u8)> {
     vec![("exit".to_string(), ebpf::BPF_EXIT)]
 }
 
+fn encode(opc: u8) -> Result<Insn, String> {
+    Ok(Insn {
+        opc: opc,
+        dst: 0,
+        src: 0,
+        off: 0,
+        imm: 0,
+    })
+}
+
 fn assemble_one(instruction: &Instruction,
                 instruction_map: &HashMap<String, u8>)
                 -> Result<Insn, String> {
     match instruction_map.get(&instruction.name) {
-        Some(opc) => {
-            Ok(Insn {
-                opc: *opc,
-                dst: 0,
-                src: 0,
-                off: 0,
-                imm: 0,
-            })
-        }
+        Some(opc) => encode(*opc),
         None => Err("Invalid instruction".to_string()),
     }
 }
