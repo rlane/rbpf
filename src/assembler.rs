@@ -25,7 +25,8 @@ enum InstructionType {
 
 fn instruction_table() -> Vec<(&'static str, (u8, InstructionType))> {
     vec![("exit", (ebpf::BPF_EXIT, NoOperand)),
-         ("add64", (ebpf::BPF_ALU64 | ebpf::BPF_ADD, AluBinary))]
+         ("add64", (ebpf::BPF_ALU64 | ebpf::BPF_ADD, AluBinary)),
+         ("neg64", (ebpf::BPF_ALU64 | ebpf::BPF_NEG, AluUnary))]
 }
 
 fn inst(opc: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Insn, String> {
@@ -49,6 +50,16 @@ fn encode_alu_binary(opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
     }
 }
 
+fn encode_alu_unary(opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
+    if operands.len() != 1 {
+        return Err(format!("Expected 1 operand, got {:?}", operands));
+    }
+    match operands[0] {
+        Register(dst) => inst(opc, dst, 0, 0, 0),
+        _ => Err(format!("Unexpected operands {:?}", operands)),
+    }
+}
+
 fn encode_no_operand(opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
     if operands.len() != 0 {
         return Err(format!("Expected 0 operands, got {:?}", operands));
@@ -63,6 +74,7 @@ fn assemble_one(instruction: &Instruction,
         Some(&(opc, inst_type)) => {
             match inst_type {
                 AluBinary => encode_alu_binary(opc, &instruction.operands),
+                AluUnary => encode_alu_unary(opc, &instruction.operands),
                 NoOperand => encode_no_operand(opc, &instruction.operands),
                 _ => Err(format!("Unexpected instruction type {:?}", inst_type)),
             }
