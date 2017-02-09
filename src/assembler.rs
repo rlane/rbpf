@@ -48,6 +48,14 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
     let mem_sizes =
         [("w", ebpf::BPF_W), ("h", ebpf::BPF_H), ("b", ebpf::BPF_B), ("dw", ebpf::BPF_DW)];
 
+    let jump_conditions = [("jeq", ebpf::BPF_JEQ),
+                           ("jgt", ebpf::BPF_JGT),
+                           ("jge", ebpf::BPF_JGE),
+                           ("jset", ebpf::BPF_JSET),
+                           ("jne", ebpf::BPF_JNE),
+                           ("jsgt", ebpf::BPF_JSGT),
+                           ("jsge", ebpf::BPF_JSGE)];
+
     {
         let mut entry = |name: &str, inst_type: InstructionType, opc: u8| {
             result.insert(name.to_string(), (inst_type, opc))
@@ -56,7 +64,6 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
         entry("exit", NoOperand, ebpf::BPF_EXIT);
         entry("neg64", AluUnary, ebpf::BPF_ALU64 | ebpf::BPF_NEG);
         entry("ja", JumpUnconditional, ebpf::JA);
-        entry("jeq", JumpConditional, ebpf::BPF_JMP | ebpf::BPF_JEQ);
         entry("call", Call, ebpf::CALL);
         entry("be32", Endian(32), ebpf::BE);
 
@@ -76,6 +83,10 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
             entry(&format!("stx{}", suffix),
                   StoreReg,
                   ebpf::BPF_MEM | ebpf::BPF_STX | size);
+        }
+
+        for &(name, condition) in jump_conditions.iter() {
+            entry(name, JumpConditional, ebpf::BPF_JMP | condition);
         }
     }
 

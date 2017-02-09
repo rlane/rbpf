@@ -308,3 +308,37 @@ fn test_store_reg() {
                        insn(ebpf::ST_B_REG, 1, 3, 2, 0),
                        insn(ebpf::ST_DW_REG, 1, 3, 2, 0)]));
 }
+
+// Test all supported JumpConditional mnemonics.
+#[test]
+fn test_jump_conditional() {
+    assert_eq!(assemble("jeq r1, r2, +3
+                         jgt r1, r2, +3
+                         jge r1, r2, +3
+                         jset r1, r2, +3
+                         jne r1, r2, +3
+                         jsgt r1, r2, +3
+                         jsge r1, r2, +3"),
+               Ok(vec![insn(ebpf::JEQ_REG, 1, 2, 3, 0),
+                       insn(ebpf::JGT_REG, 1, 2, 3, 0),
+                       insn(ebpf::JGE_REG, 1, 2, 3, 0),
+                       insn(ebpf::JSET_REG, 1, 2, 3, 0),
+                       insn(ebpf::JNE_REG, 1, 2, 3, 0),
+                       insn(ebpf::JSGT_REG, 1, 2, 3, 0),
+                       insn(ebpf::JSGE_REG, 1, 2, 3, 0)]));
+
+    assert_eq!(assemble("jeq r1, 2, +3
+                         jgt r1, 2, +3
+                         jge r1, 2, +3
+                         jset r1, 2, +3
+                         jne r1, 2, +3
+                         jsgt r1, 2, +3
+                         jsge r1, 2, +3"),
+               Ok(vec![insn(ebpf::JEQ_IMM, 1, 0, 3, 2),
+                       insn(ebpf::JGT_IMM, 1, 0, 3, 2),
+                       insn(ebpf::JGE_IMM, 1, 0, 3, 2),
+                       insn(ebpf::JSET_IMM, 1, 0, 3, 2),
+                       insn(ebpf::JNE_IMM, 1, 0, 3, 2),
+                       insn(ebpf::JSGT_IMM, 1, 0, 3, 2),
+                       insn(ebpf::JSGE_IMM, 1, 0, 3, 2)]));
+}
