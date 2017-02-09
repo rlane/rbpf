@@ -12,7 +12,7 @@ use ebpf;
 use ebpf::Insn;
 use std::collections::HashMap;
 use self::InstructionType::{AluBinary, AluUnary, Load, StoreImm, StoreReg, JumpUnconditional,
-                            JumpConditional, Endian, NoOperand};
+                            JumpConditional, Call, Endian, NoOperand};
 use asm_parser::Operand::{Integer, Memory, Register, Nil};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -24,6 +24,7 @@ enum InstructionType {
     StoreReg,
     JumpUnconditional,
     JumpConditional,
+    Call,
     Endian(i64),
     NoOperand,
 }
@@ -37,6 +38,7 @@ fn instruction_table() -> Vec<(&'static str, (InstructionType, u8))> {
          ("stxw", (StoreReg, ebpf::ST_W_REG)),
          ("ja", (JumpUnconditional, ebpf::JA)),
          ("jeq", (JumpConditional, ebpf::BPF_JMP | ebpf::BPF_JEQ)),
+         ("call", (Call, ebpf::CALL)),
          ("be32", (Endian(32), ebpf::BE))]
 }
 
@@ -81,6 +83,7 @@ fn encode_all(opc: u8,
         (JumpConditional, Register(dst), Integer(imm), Integer(off)) => {
             inst(opc | ebpf::BPF_K, dst, 0, off, imm)
         }
+        (Call, Integer(imm), Nil, Nil) => inst(opc, 0, 0, 0, imm),
         (Endian(size), Register(dst), Nil, Nil) => inst(opc, dst, 0, 0, size),
         _ => Err(format!("Unexpected operands: {:?}", operands)),
     }
