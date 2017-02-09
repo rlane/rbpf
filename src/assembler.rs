@@ -30,6 +30,8 @@ enum InstructionType {
 }
 
 fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
+    let mut result = HashMap::new();
+
     let alu_binary_ops = [("add", ebpf::BPF_ADD),
                           ("sub", ebpf::BPF_SUB),
                           ("mul", ebpf::BPF_MUL),
@@ -43,11 +45,9 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
                           ("mov", ebpf::BPF_MOV),
                           ("arsh", ebpf::BPF_ARSH)];
 
-    let mut table: Vec<(String, (InstructionType, u8))> = vec![];
-
     {
         let mut entry = |name: &str, inst_type: InstructionType, opc: u8| {
-            table.push((name.to_string(), (inst_type, opc)))
+            result.insert(name.to_string(), (inst_type, opc))
         };
 
         entry("exit", NoOperand, ebpf::BPF_EXIT);
@@ -67,7 +67,7 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
         }
     }
 
-    table.iter().cloned().collect()
+    result
 }
 
 fn inst(opc: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Insn, String> {
