@@ -21,6 +21,8 @@ pub enum Operand {
     Integer(i64),
     /// Register number and offset.
     Memory(i64, i64),
+    /// Used for pattern matching.
+    Nil,
 }
 
 /// Parsed instruction.
