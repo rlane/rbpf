@@ -29,17 +29,45 @@ enum InstructionType {
     NoOperand,
 }
 
-fn instruction_table() -> Vec<(&'static str, (InstructionType, u8))> {
-    vec![("exit", (NoOperand, ebpf::BPF_EXIT)),
-         ("add64", (AluBinary, ebpf::BPF_ALU64 | ebpf::BPF_ADD)),
-         ("neg64", (AluUnary, ebpf::BPF_ALU64 | ebpf::BPF_NEG)),
-         ("ldxw", (Load, ebpf::LD_W_REG)),
-         ("stw", (StoreImm, ebpf::ST_W_IMM)),
-         ("stxw", (StoreReg, ebpf::ST_W_REG)),
-         ("ja", (JumpUnconditional, ebpf::JA)),
-         ("jeq", (JumpConditional, ebpf::BPF_JMP | ebpf::BPF_JEQ)),
-         ("call", (Call, ebpf::CALL)),
-         ("be32", (Endian(32), ebpf::BE))]
+fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
+    let alu_binary_ops = [("add", ebpf::BPF_ADD),
+                          ("sub", ebpf::BPF_SUB),
+                          ("mul", ebpf::BPF_MUL),
+                          ("div", ebpf::BPF_DIV),
+                          ("or", ebpf::BPF_OR),
+                          ("and", ebpf::BPF_AND),
+                          ("lsh", ebpf::BPF_LSH),
+                          ("rsh", ebpf::BPF_RSH),
+                          ("mod", ebpf::BPF_MOD),
+                          ("xor", ebpf::BPF_XOR),
+                          ("mov", ebpf::BPF_MOV),
+                          ("arsh", ebpf::BPF_ARSH)];
+
+    let mut table: Vec<(String, (InstructionType, u8))> = vec![];
+
+    {
+        let mut entry = |name: &str, inst_type: InstructionType, opc: u8| {
+            table.push((name.to_string(), (inst_type, opc)))
+        };
+
+        entry("exit", NoOperand, ebpf::BPF_EXIT);
+        entry("neg64", AluUnary, ebpf::BPF_ALU64 | ebpf::BPF_NEG);
+        entry("ldxw", Load, ebpf::LD_W_REG);
+        entry("stw", StoreImm, ebpf::ST_W_IMM);
+        entry("stxw", StoreReg, ebpf::ST_W_REG);
+        entry("ja", JumpUnconditional, ebpf::JA);
+        entry("jeq", JumpConditional, ebpf::BPF_JMP | ebpf::BPF_JEQ);
+        entry("call", Call, ebpf::CALL);
+        entry("be32", Endian(32), ebpf::BE);
+
+        for &(name, opc) in alu_binary_ops.iter() {
+            entry(name, AluBinary, ebpf::BPF_ALU64 | opc);
+            entry(&format!("{}32", name), AluBinary, ebpf::BPF_ALU | opc);
+            entry(&format!("{}64", name), AluBinary, ebpf::BPF_ALU64 | opc);
+        }
+    }
+
+    table.iter().cloned().collect()
 }
 
 fn inst(opc: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Insn, String> {
@@ -90,8 +118,7 @@ fn encode_all(opc: u8,
 }
 
 fn assemble_internal(instructions: &[Instruction]) -> Result<Vec<Insn>, String> {
-    let instruction_map: HashMap<&str, (InstructionType, u8)> =
-        instruction_table().iter().cloned().collect();
+    let instruction_map = make_instruction_map();
     let mut result = vec![];
     for instruction in instructions {
         match instruction_map.get(instruction.name.as_str()) {
