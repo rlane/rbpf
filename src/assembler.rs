@@ -17,6 +17,7 @@ use asm_parser::Operand::{Integer, Memory, Register, Nil};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum InstructionType {
+    NoOperand,
     AluBinary,
     AluUnary,
     Load,
@@ -26,7 +27,6 @@ enum InstructionType {
     JumpConditional,
     Call,
     Endian(i64),
-    NoOperand,
 }
 
 fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
