@@ -45,6 +45,9 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
                           ("mov", ebpf::BPF_MOV),
                           ("arsh", ebpf::BPF_ARSH)];
 
+    let mem_sizes =
+        [("w", ebpf::BPF_W), ("h", ebpf::BPF_H), ("b", ebpf::BPF_B), ("dw", ebpf::BPF_DW)];
+
     {
         let mut entry = |name: &str, inst_type: InstructionType, opc: u8| {
             result.insert(name.to_string(), (inst_type, opc))
@@ -64,6 +67,18 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
             entry(name, AluBinary, ebpf::BPF_ALU64 | opc);
             entry(&format!("{}32", name), AluBinary, ebpf::BPF_ALU | opc);
             entry(&format!("{}64", name), AluBinary, ebpf::BPF_ALU64 | opc);
+        }
+
+        for &(suffix, size) in mem_sizes.iter() {
+            entry(&format!("ldx{}", suffix),
+                  Load,
+                  ebpf::BPF_MEM | ebpf::BPF_LDX | size);
+            entry(&format!("st{}", suffix),
+                  StoreImm,
+                  ebpf::BPF_MEM | ebpf::BPF_ST | size);
+            entry(&format!("stx{}", suffix),
+                  StoreReg,
+                  ebpf::BPF_MEM | ebpf::BPF_STX | size);
         }
     }
 
