@@ -27,15 +27,15 @@ enum InstructionType {
     NoOperand,
 }
 
-fn instruction_table() -> Vec<(&'static str, (u8, InstructionType))> {
-    vec![("exit", (ebpf::BPF_EXIT, NoOperand)),
-         ("add64", (ebpf::BPF_ALU64 | ebpf::BPF_ADD, AluBinary)),
-         ("neg64", (ebpf::BPF_ALU64 | ebpf::BPF_NEG, AluUnary)),
-         ("ldxw", (ebpf::LD_W_REG, Load)),
-         ("stw", (ebpf::ST_W_IMM, StoreImm)),
-         ("stxw", (ebpf::ST_W_REG, StoreReg)),
-         ("ja", (ebpf::JA, JumpUnconditional)),
-         ("jeq", (ebpf::BPF_JMP | ebpf::BPF_JEQ, JumpConditional))]
+fn instruction_table() -> Vec<(&'static str, (InstructionType, u8))> {
+    vec![("exit", (NoOperand, ebpf::BPF_EXIT)),
+         ("add64", (AluBinary, ebpf::BPF_ALU64 | ebpf::BPF_ADD)),
+         ("neg64", (AluUnary, ebpf::BPF_ALU64 | ebpf::BPF_NEG)),
+         ("ldxw", (Load, ebpf::LD_W_REG)),
+         ("stw", (StoreImm, ebpf::ST_W_IMM)),
+         ("stxw", (StoreReg, ebpf::ST_W_REG)),
+         ("ja", (JumpUnconditional, ebpf::JA)),
+         ("jeq", (JumpConditional, ebpf::BPF_JMP | ebpf::BPF_JEQ))]
 }
 
 fn inst(opc: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Insn, String> {
@@ -84,12 +84,12 @@ fn encode_all(opc: u8,
 }
 
 fn assemble_internal(instructions: &[Instruction]) -> Result<Vec<Insn>, String> {
-    let instruction_map: HashMap<&str, (u8, InstructionType)> =
+    let instruction_map: HashMap<&str, (InstructionType, u8)> =
         instruction_table().iter().cloned().collect();
     let mut result = vec![];
     for instruction in instructions {
         match instruction_map.get(instruction.name.as_str()) {
-            Some(&(opc, inst_type)) => {
+            Some(&(inst_type, opc)) => {
                 match encode_all(opc, inst_type, &instruction.operands) {
                     Ok(insn) => result.push(insn),
                     Err(msg) => return Err(msg),
