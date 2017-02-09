@@ -55,9 +55,6 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
 
         entry("exit", NoOperand, ebpf::BPF_EXIT);
         entry("neg64", AluUnary, ebpf::BPF_ALU64 | ebpf::BPF_NEG);
-        entry("ldxw", Load, ebpf::LD_W_REG);
-        entry("stw", StoreImm, ebpf::ST_W_IMM);
-        entry("stxw", StoreReg, ebpf::ST_W_REG);
         entry("ja", JumpUnconditional, ebpf::JA);
         entry("jeq", JumpConditional, ebpf::BPF_JMP | ebpf::BPF_JEQ);
         entry("call", Call, ebpf::CALL);
