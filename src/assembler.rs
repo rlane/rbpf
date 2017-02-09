@@ -46,12 +46,14 @@ fn inst(opc: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Insn, String>
     })
 }
 
-fn operands_tuple(operands: &Vec<Operand>) -> (Operand, Operand) {
+// TODO Use slice patterns when available.
+fn operands_tuple(operands: &Vec<Operand>) -> (Operand, Operand, Operand) {
     match operands.len() {
-        0 => (Nil, Nil),
-        1 => (operands[0], Nil),
-        2 => (operands[0], operands[1]),
-        _ => (Nil, Nil), // XXX
+        0 => (Nil, Nil, Nil),
+        1 => (operands[0], Nil, Nil),
+        2 => (operands[0], operands[1], Nil),
+        3 => (operands[0], operands[1], operands[2]),
+        _ => (Nil, Nil, Nil), // XXX
     }
 }
 
@@ -59,16 +61,16 @@ fn encode_all(opc: u8,
               inst_type: InstructionType,
               operands: &Vec<Operand>)
               -> Result<Insn, String> {
-    let (a, b) = operands_tuple(operands);
-    match (inst_type, a, b) {
-        (AluBinary, Register(dst), Register(src)) => inst(opc | ebpf::BPF_X, dst, src, 0, 0),
-        (AluBinary, Register(dst), Integer(imm)) => inst(opc | ebpf::BPF_K, dst, 0, 0, imm),
-        (AluUnary, Register(dst), Nil) => inst(opc, dst, 0, 0, 0),
-        (Load, Register(dst), Memory(src, off)) => inst(opc, dst, src, off, 0),
-        (StoreImm, Memory(dst, off), Integer(imm)) => inst(opc, dst, 0, off, imm),
-        (StoreReg, Memory(dst, off), Register(src)) => inst(opc, dst, src, off, 0),
-        (NoOperand, Nil, Nil) => inst(opc, 0, 0, 0, 0),
-        (JumpUnconditional, Integer(off), Nil) => inst(opc, 0, 0, off, 0),
+    let (a, b, c) = operands_tuple(operands);
+    match (inst_type, a, b, c) {
+        (AluBinary, Register(dst), Register(src), Nil) => inst(opc | ebpf::BPF_X, dst, src, 0, 0),
+        (AluBinary, Register(dst), Integer(imm), Nil) => inst(opc | ebpf::BPF_K, dst, 0, 0, imm),
+        (AluUnary, Register(dst), Nil, Nil) => inst(opc, dst, 0, 0, 0),
+        (Load, Register(dst), Memory(src, off), Nil) => inst(opc, dst, src, off, 0),
+        (StoreImm, Memory(dst, off), Integer(imm), Nil) => inst(opc, dst, 0, off, imm),
+        (StoreReg, Memory(dst, off), Register(src), Nil) => inst(opc, dst, src, off, 0),
+        (NoOperand, Nil, Nil, Nil) => inst(opc, 0, 0, 0, 0),
+        (JumpUnconditional, Integer(off), Nil, Nil) => inst(opc, 0, 0, off, 0),
         _ => Err(format!("Unexpected operands: {:?}", operands)),
     }
 }
