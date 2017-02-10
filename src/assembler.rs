@@ -7,7 +7,7 @@
 
 //! This module translates eBPF assembly language to instructions.
 
-use asm_parser::{Instruction, Operand, parse};
+use asm_parser::{Operand, parse};
 use ebpf;
 use ebpf::Insn;
 use std::collections::HashMap;
@@ -153,7 +153,9 @@ fn encode_all(opc: u8,
     }
 }
 
-fn assemble_internal(instructions: &[Instruction]) -> Result<Vec<Insn>, String> {
+/// XXX
+pub fn assemble(src: &str) -> Result<Vec<Insn>, String> {
+    let instructions = &try!(parse(src));
     let instruction_map = make_instruction_map();
     let mut result = vec![];
     for instruction in instructions {
@@ -168,9 +170,4 @@ fn assemble_internal(instructions: &[Instruction]) -> Result<Vec<Insn>, String> 
         }
     }
     Ok(result)
-}
-
-/// XXX
-pub fn assemble(src: &str) -> Result<Vec<Insn>, String> {
-    assemble_internal(&try!(parse(src)))
 }
