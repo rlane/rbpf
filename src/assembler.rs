@@ -61,17 +61,24 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
             result.insert(name.to_string(), (inst_type, opc))
         };
 
+        // Miscellaneous.
         entry("exit", NoOperand, ebpf::BPF_EXIT);
-        entry("neg64", AluUnary, ebpf::BPF_ALU64 | ebpf::BPF_NEG);
         entry("ja", JumpUnconditional, ebpf::JA);
         entry("call", Call, ebpf::CALL);
 
+        // AluUnary.
+        entry("neg", AluUnary, ebpf::NEG64);
+        entry("neg32", AluUnary, ebpf::NEG32);
+        entry("neg64", AluUnary, ebpf::NEG64);
+
+        // AluBinary.
         for &(name, opc) in alu_binary_ops.iter() {
             entry(name, AluBinary, ebpf::BPF_ALU64 | opc);
             entry(&format!("{}32", name), AluBinary, ebpf::BPF_ALU | opc);
             entry(&format!("{}64", name), AluBinary, ebpf::BPF_ALU64 | opc);
         }
 
+        // Load, StoreImm, and StoreReg.
         for &(suffix, size) in mem_sizes.iter() {
             entry(&format!("ldx{}", suffix),
                   Load,
@@ -84,10 +91,12 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
                   ebpf::BPF_MEM | ebpf::BPF_STX | size);
         }
 
+        // JumpConditional.
         for &(name, condition) in jump_conditions.iter() {
             entry(name, JumpConditional, ebpf::BPF_JMP | condition);
         }
 
+        // Endian.
         for &size in [16, 32, 64].iter() {
             entry(&format!("be{}", size), Endian(size), ebpf::BE);
             entry(&format!("le{}", size), Endian(size), ebpf::LE);

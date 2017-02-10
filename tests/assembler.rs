@@ -270,6 +270,17 @@ fn test_alu_binary() {
                        insn(ebpf::ARSH32_IMM, 1, 0, 0, 2)]));
 }
 
+// Test all supported AluUnary mnemonics.
+#[test]
+fn test_alu_unary() {
+    assert_eq!(assemble("neg r1
+                         neg64 r1
+                         neg32 r1"),
+               Ok(vec![insn(ebpf::NEG64, 1, 0, 0, 0),
+                       insn(ebpf::NEG64, 1, 0, 0, 0),
+                       insn(ebpf::NEG32, 1, 0, 0, 0)]));
+}
+
 // Test all supported Load mnemonics.
 #[test]
 fn test_load() {
