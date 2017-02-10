@@ -100,6 +100,9 @@ fn test_be32() {
 fn test_lddw() {
     assert_eq!(assemble("lddw r1, 0x1234abcd5678eeff"),
                Ok(vec![insn(ebpf::LD_DW_IMM, 1, 0, 0, 0x5678eeff), insn(0, 0, 0, 0, 0x1234abcd)]));
+    assert_eq!(assemble("lddw r1, 0xff11ee22dd33cc44"),
+               Ok(vec![insn(ebpf::LD_DW_IMM, 1, 0, 0, 0xdd33cc44u32 as i32),
+                       insn(0, 0, 0, 0, 0xff11ee22u32 as i32)]));
 }
 
 // Example for InstructionType::LoadReg.
