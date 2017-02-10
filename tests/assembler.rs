@@ -95,6 +95,13 @@ fn test_be32() {
     assert_eq!(assemble("be32 r1"), Ok(vec![insn(ebpf::BE, 1, 0, 0, 32)]));
 }
 
+// Example for InstructionType::LoadImm.
+#[test]
+fn test_lddw() {
+    assert_eq!(assemble("lddw r1, 0x1234abcd5678eeff"),
+               Ok(vec![insn(ebpf::LD_DW_IMM, 1, 0, 0, 0x5678eeff), insn(0, 0, 0, 0, 0x1234abcd)]));
+}
+
 // Example for InstructionType::Load.
 #[test]
 fn test_ldxdw() {

@@ -11,8 +11,8 @@ use asm_parser::{Operand, parse};
 use ebpf;
 use ebpf::Insn;
 use std::collections::HashMap;
-use self::InstructionType::{AluBinary, AluUnary, Load, StoreImm, StoreReg, JumpUnconditional,
-                            JumpConditional, Call, Endian, NoOperand};
+use self::InstructionType::{AluBinary, AluUnary, LoadImm, Load, StoreImm, StoreReg,
+                            JumpUnconditional, JumpConditional, Call, Endian, NoOperand};
 use asm_parser::Operand::{Integer, Memory, Register, Nil};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -20,6 +20,7 @@ enum InstructionType {
     NoOperand,
     AluBinary,
     AluUnary,
+    LoadImm,
     Load,
     StoreImm,
     StoreReg,
@@ -65,6 +66,7 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
         entry("exit", NoOperand, ebpf::BPF_EXIT);
         entry("ja", JumpUnconditional, ebpf::JA);
         entry("call", Call, ebpf::CALL);
+        entry("lddw", LoadImm, ebpf::LD_DW_IMM);
 
         // AluUnary.
         entry("neg", AluUnary, ebpf::NEG64);
@@ -146,6 +148,7 @@ fn encode(inst_type: InstructionType, opc: u8, operands: &Vec<Operand>) -> Resul
         }
         (Call, Integer(imm), Nil, Nil) => insn(opc, 0, 0, 0, imm),
         (Endian(size), Register(dst), Nil, Nil) => insn(opc, dst, 0, 0, size),
+        (LoadImm, Register(dst), Integer(imm), Nil) => insn(opc, dst, 0, 0, imm),
         _ => Err(format!("Unexpected operands: {:?}", operands)),
     }
 }
@@ -161,6 +164,11 @@ pub fn assemble(src: &str) -> Result<Vec<Insn>, String> {
                 match encode(inst_type, opc, &instruction.operands) {
                     Ok(insn) => result.push(insn),
                     Err(msg) => return Err(msg),
+                }
+                if let LoadImm = inst_type {
+                    if let Integer(imm) = instruction.operands[1] {
+                        result.push(insn(0, 0, 0, 0, imm >> 32).unwrap());
+                    }
                 }
             }
             None => return Err(format!("Invalid instruction {:?}", &instruction.name)),
