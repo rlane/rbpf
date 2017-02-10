@@ -65,7 +65,6 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
         entry("neg64", AluUnary, ebpf::BPF_ALU64 | ebpf::BPF_NEG);
         entry("ja", JumpUnconditional, ebpf::JA);
         entry("call", Call, ebpf::CALL);
-        entry("be32", Endian(32), ebpf::BE);
 
         for &(name, opc) in alu_binary_ops.iter() {
             entry(name, AluBinary, ebpf::BPF_ALU64 | opc);
@@ -87,6 +86,11 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
 
         for &(name, condition) in jump_conditions.iter() {
             entry(name, JumpConditional, ebpf::BPF_JMP | condition);
+        }
+
+        for &size in [16, 32, 64].iter() {
+            entry(&format!("be{}", size), Endian(size), ebpf::BE);
+            entry(&format!("le{}", size), Endian(size), ebpf::LE);
         }
     }
 

@@ -342,3 +342,20 @@ fn test_jump_conditional() {
                        insn(ebpf::JSGT_IMM, 1, 0, 3, 2),
                        insn(ebpf::JSGE_IMM, 1, 0, 3, 2)]));
 }
+
+// Test all supported Endian mnemonics.
+#[test]
+fn test_endian() {
+    assert_eq!(assemble("be16 r1
+                         be32 r1
+                         be64 r1
+                         le16 r1
+                         le32 r1
+                         le64 r1"),
+               Ok(vec![insn(ebpf::BE, 1, 0, 0, 16),
+                       insn(ebpf::BE, 1, 0, 0, 32),
+                       insn(ebpf::BE, 1, 0, 0, 64),
+                       insn(ebpf::LE, 1, 0, 0, 16),
+                       insn(ebpf::LE, 1, 0, 0, 32),
+                       insn(ebpf::LE, 1, 0, 0, 64)]));
+}
