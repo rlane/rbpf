@@ -291,7 +291,7 @@ fn test_alu_unary() {
                        insn(ebpf::NEG32, 1, 0, 0, 0)]));
 }
 
-// Test all supported Load mnemonics.
+// Test all supported LoadReg mnemonics.
 #[test]
 fn test_load() {
     assert_eq!(assemble("ldxw r1, [r2+3]
