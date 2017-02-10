@@ -11,7 +11,7 @@ use asm_parser::{Operand, parse};
 use ebpf;
 use ebpf::Insn;
 use std::collections::HashMap;
-use self::InstructionType::{AluBinary, AluUnary, LoadImm, Load, StoreImm, StoreReg,
+use self::InstructionType::{AluBinary, AluUnary, LoadImm, LoadReg, StoreImm, StoreReg,
                             JumpUnconditional, JumpConditional, Call, Endian, NoOperand};
 use asm_parser::Operand::{Integer, Memory, Register, Nil};
 
@@ -21,7 +21,7 @@ enum InstructionType {
     AluBinary,
     AluUnary,
     LoadImm,
-    Load,
+    LoadReg,
     StoreImm,
     StoreReg,
     JumpUnconditional,
@@ -83,7 +83,7 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
         // Load, StoreImm, and StoreReg.
         for &(suffix, size) in &mem_sizes {
             entry(&format!("ldx{}", suffix),
-                  Load,
+                  LoadReg,
                   ebpf::BPF_MEM | ebpf::BPF_LDX | size);
             entry(&format!("st{}", suffix),
                   StoreImm,
@@ -135,7 +135,7 @@ fn encode(inst_type: InstructionType, opc: u8, operands: &[Operand]) -> Result<I
         (AluBinary, Register(dst), Register(src), Nil) => insn(opc | ebpf::BPF_X, dst, src, 0, 0),
         (AluBinary, Register(dst), Integer(imm), Nil) => insn(opc | ebpf::BPF_K, dst, 0, 0, imm),
         (AluUnary, Register(dst), Nil, Nil) => insn(opc, dst, 0, 0, 0),
-        (Load, Register(dst), Memory(src, off), Nil) => insn(opc, dst, src, off, 0),
+        (LoadReg, Register(dst), Memory(src, off), Nil) => insn(opc, dst, src, off, 0),
         (StoreImm, Memory(dst, off), Integer(imm), Nil) => insn(opc, dst, 0, off, imm),
         (StoreReg, Memory(dst, off), Register(src), Nil) => insn(opc, dst, src, off, 0),
         (NoOperand, Nil, Nil, Nil) => insn(opc, 0, 0, 0, 0),

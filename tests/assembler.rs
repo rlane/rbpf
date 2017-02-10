@@ -45,7 +45,7 @@ fn test_neg64() {
                Ok(vec![insn(ebpf::NEG64, 1, 0, 0, 0)]));
 }
 
-// Example for InstructionType::Load.
+// Example for InstructionType::LoadReg.
 #[test]
 fn test_ldxw() {
     assert_eq!(assemble("ldxw r1, [r2+5]"),
@@ -102,7 +102,7 @@ fn test_lddw() {
                Ok(vec![insn(ebpf::LD_DW_IMM, 1, 0, 0, 0x5678eeff), insn(0, 0, 0, 0, 0x1234abcd)]));
 }
 
-// Example for InstructionType::Load.
+// Example for InstructionType::LoadReg.
 #[test]
 fn test_ldxdw() {
     assert_eq!(assemble("ldxdw r1, [r2+3]"),
