@@ -106,7 +106,7 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
     result
 }
 
-fn inst(opc: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Insn, String> {
+fn insn(opc: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Insn, String> {
     Ok(Insn {
         opc: opc,
         dst: dst as u8,
@@ -133,22 +133,22 @@ fn encode_all(opc: u8,
               -> Result<Insn, String> {
     let (a, b, c) = operands_tuple(operands);
     match (inst_type, a, b, c) {
-        (AluBinary, Register(dst), Register(src), Nil) => inst(opc | ebpf::BPF_X, dst, src, 0, 0),
-        (AluBinary, Register(dst), Integer(imm), Nil) => inst(opc | ebpf::BPF_K, dst, 0, 0, imm),
-        (AluUnary, Register(dst), Nil, Nil) => inst(opc, dst, 0, 0, 0),
-        (Load, Register(dst), Memory(src, off), Nil) => inst(opc, dst, src, off, 0),
-        (StoreImm, Memory(dst, off), Integer(imm), Nil) => inst(opc, dst, 0, off, imm),
-        (StoreReg, Memory(dst, off), Register(src), Nil) => inst(opc, dst, src, off, 0),
-        (NoOperand, Nil, Nil, Nil) => inst(opc, 0, 0, 0, 0),
-        (JumpUnconditional, Integer(off), Nil, Nil) => inst(opc, 0, 0, off, 0),
+        (AluBinary, Register(dst), Register(src), Nil) => insn(opc | ebpf::BPF_X, dst, src, 0, 0),
+        (AluBinary, Register(dst), Integer(imm), Nil) => insn(opc | ebpf::BPF_K, dst, 0, 0, imm),
+        (AluUnary, Register(dst), Nil, Nil) => insn(opc, dst, 0, 0, 0),
+        (Load, Register(dst), Memory(src, off), Nil) => insn(opc, dst, src, off, 0),
+        (StoreImm, Memory(dst, off), Integer(imm), Nil) => insn(opc, dst, 0, off, imm),
+        (StoreReg, Memory(dst, off), Register(src), Nil) => insn(opc, dst, src, off, 0),
+        (NoOperand, Nil, Nil, Nil) => insn(opc, 0, 0, 0, 0),
+        (JumpUnconditional, Integer(off), Nil, Nil) => insn(opc, 0, 0, off, 0),
         (JumpConditional, Register(dst), Register(src), Integer(off)) => {
-            inst(opc | ebpf::BPF_X, dst, src, off, 0)
+            insn(opc | ebpf::BPF_X, dst, src, off, 0)
         }
         (JumpConditional, Register(dst), Integer(imm), Integer(off)) => {
-            inst(opc | ebpf::BPF_K, dst, 0, off, imm)
+            insn(opc | ebpf::BPF_K, dst, 0, off, imm)
         }
-        (Call, Integer(imm), Nil, Nil) => inst(opc, 0, 0, 0, imm),
-        (Endian(size), Register(dst), Nil, Nil) => inst(opc, dst, 0, 0, size),
+        (Call, Integer(imm), Nil, Nil) => insn(opc, 0, 0, 0, imm),
+        (Endian(size), Register(dst), Nil, Nil) => insn(opc, dst, 0, 0, size),
         _ => Err(format!("Unexpected operands: {:?}", operands)),
     }
 }
