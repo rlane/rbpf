@@ -135,9 +135,9 @@ fn encode(inst_type: InstructionType, opc: u8, operands: &[Operand]) -> Result<I
         (AluBinary, Register(dst), Register(src), Nil) => insn(opc | ebpf::BPF_X, dst, src, 0, 0),
         (AluBinary, Register(dst), Integer(imm), Nil) => insn(opc | ebpf::BPF_K, dst, 0, 0, imm),
         (AluUnary, Register(dst), Nil, Nil) => insn(opc, dst, 0, 0, 0),
-        (LoadReg, Register(dst), Memory(src, off), Nil) => insn(opc, dst, src, off, 0),
-        (StoreImm, Memory(dst, off), Integer(imm), Nil) => insn(opc, dst, 0, off, imm),
+        (LoadReg, Register(dst), Memory(src, off), Nil) |
         (StoreReg, Memory(dst, off), Register(src), Nil) => insn(opc, dst, src, off, 0),
+        (StoreImm, Memory(dst, off), Integer(imm), Nil) => insn(opc, dst, 0, off, imm),
         (NoOperand, Nil, Nil, Nil) => insn(opc, 0, 0, 0, 0),
         (JumpUnconditional, Integer(off), Nil, Nil) => insn(opc, 0, 0, off, 0),
         (JumpConditional, Register(dst), Register(src), Integer(off)) => {
