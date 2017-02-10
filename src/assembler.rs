@@ -159,13 +159,12 @@ pub fn assemble(src: &str) -> Result<Vec<Insn>, String> {
     let instruction_map = make_instruction_map();
     let mut result = vec![];
     for instruction in instructions {
-        match instruction_map.get(instruction.name.as_str()) {
+        let name = instruction.name.as_str();
+        match instruction_map.get(name) {
             Some(&(inst_type, opc)) => {
                 match encode(inst_type, opc, &instruction.operands) {
                     Ok(insn) => result.push(insn),
-                    Err(msg) => {
-                        return Err(format!("Failed to encode {}: {}", &instruction.name, msg))
-                    }
+                    Err(msg) => return Err(format!("Failed to encode {}: {}", name, msg)),
                 }
                 if let LoadImm = inst_type {
                     if let Integer(imm) = instruction.operands[1] {
@@ -173,7 +172,7 @@ pub fn assemble(src: &str) -> Result<Vec<Insn>, String> {
                     }
                 }
             }
-            None => return Err(format!("Invalid instruction {:?}", &instruction.name)),
+            None => return Err(format!("Invalid instruction {:?}", name)),
         }
     }
     Ok(result)
