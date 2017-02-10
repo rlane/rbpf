@@ -74,14 +74,14 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
         entry("neg64", AluUnary, ebpf::NEG64);
 
         // AluBinary.
-        for &(name, opc) in alu_binary_ops.iter() {
+        for &(name, opc) in &alu_binary_ops {
             entry(name, AluBinary, ebpf::BPF_ALU64 | opc);
             entry(&format!("{}32", name), AluBinary, ebpf::BPF_ALU | opc);
             entry(&format!("{}64", name), AluBinary, ebpf::BPF_ALU64 | opc);
         }
 
         // Load, StoreImm, and StoreReg.
-        for &(suffix, size) in mem_sizes.iter() {
+        for &(suffix, size) in &mem_sizes {
             entry(&format!("ldx{}", suffix),
                   Load,
                   ebpf::BPF_MEM | ebpf::BPF_LDX | size);
@@ -94,12 +94,12 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
         }
 
         // JumpConditional.
-        for &(name, condition) in jump_conditions.iter() {
+        for &(name, condition) in &jump_conditions {
             entry(name, JumpConditional, ebpf::BPF_JMP | condition);
         }
 
         // Endian.
-        for &size in [16, 32, 64].iter() {
+        for &size in &[16, 32, 64] {
             entry(&format!("be{}", size), Endian(size), ebpf::BE);
             entry(&format!("le{}", size), Endian(size), ebpf::LE);
         }
@@ -119,7 +119,7 @@ fn insn(opc: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Insn, String>
 }
 
 // TODO Use slice patterns when available and remove this function.
-fn operands_tuple(operands: &Vec<Operand>) -> (Operand, Operand, Operand) {
+fn operands_tuple(operands: &[Operand]) -> (Operand, Operand, Operand) {
     match operands.len() {
         0 => (Nil, Nil, Nil),
         1 => (operands[0], Nil, Nil),
@@ -129,7 +129,7 @@ fn operands_tuple(operands: &Vec<Operand>) -> (Operand, Operand, Operand) {
     }
 }
 
-fn encode(inst_type: InstructionType, opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
+fn encode(inst_type: InstructionType, opc: u8, operands: &[Operand]) -> Result<Insn, String> {
     let (a, b, c) = operands_tuple(operands);
     match (inst_type, a, b, c) {
         (AluBinary, Register(dst), Register(src), Nil) => insn(opc | ebpf::BPF_X, dst, src, 0, 0),
