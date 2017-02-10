@@ -119,18 +119,18 @@ fn insn(opc: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Insn, String>
 }
 
 // TODO Use slice patterns when available and remove this function.
-fn operands_tuple(operands: &[Operand]) -> (Operand, Operand, Operand) {
+fn operands_tuple(operands: &[Operand]) -> Result<(Operand, Operand, Operand), String> {
     match operands.len() {
-        0 => (Nil, Nil, Nil),
-        1 => (operands[0], Nil, Nil),
-        2 => (operands[0], operands[1], Nil),
-        3 => (operands[0], operands[1], operands[2]),
-        _ => (Nil, Nil, Nil), // XXX
+        0 => Ok((Nil, Nil, Nil)),
+        1 => Ok((operands[0], Nil, Nil)),
+        2 => Ok((operands[0], operands[1], Nil)),
+        3 => Ok((operands[0], operands[1], operands[2])),
+        _ => Err("Too many operands".to_string()),
     }
 }
 
 fn encode(inst_type: InstructionType, opc: u8, operands: &[Operand]) -> Result<Insn, String> {
-    let (a, b, c) = operands_tuple(operands);
+    let (a, b, c) = try!(operands_tuple(operands));
     match (inst_type, a, b, c) {
         (AluBinary, Register(dst), Register(src), Nil) => insn(opc | ebpf::BPF_X, dst, src, 0, 0),
         (AluBinary, Register(dst), Integer(imm), Nil) => insn(opc | ebpf::BPF_K, dst, 0, 0, imm),
@@ -163,7 +163,9 @@ pub fn assemble(src: &str) -> Result<Vec<Insn>, String> {
             Some(&(inst_type, opc)) => {
                 match encode(inst_type, opc, &instruction.operands) {
                     Ok(insn) => result.push(insn),
-                    Err(msg) => return Err(msg),
+                    Err(msg) => {
+                        return Err(format!("Failed to encode {}: {}", &instruction.name, msg))
+                    }
                 }
                 if let LoadImm = inst_type {
                     if let Integer(imm) = instruction.operands[1] {
