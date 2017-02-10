@@ -116,7 +116,7 @@ fn insn(opc: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Insn, String>
     })
 }
 
-// TODO Use slice patterns when available.
+// TODO Use slice patterns when available and remove this function.
 fn operands_tuple(operands: &Vec<Operand>) -> (Operand, Operand, Operand) {
     match operands.len() {
         0 => (Nil, Nil, Nil),
@@ -127,10 +127,7 @@ fn operands_tuple(operands: &Vec<Operand>) -> (Operand, Operand, Operand) {
     }
 }
 
-fn encode_all(opc: u8,
-              inst_type: InstructionType,
-              operands: &Vec<Operand>)
-              -> Result<Insn, String> {
+fn encode(inst_type: InstructionType, opc: u8, operands: &Vec<Operand>) -> Result<Insn, String> {
     let (a, b, c) = operands_tuple(operands);
     match (inst_type, a, b, c) {
         (AluBinary, Register(dst), Register(src), Nil) => insn(opc | ebpf::BPF_X, dst, src, 0, 0),
@@ -161,7 +158,7 @@ pub fn assemble(src: &str) -> Result<Vec<Insn>, String> {
     for instruction in instructions {
         match instruction_map.get(instruction.name.as_str()) {
             Some(&(inst_type, opc)) => {
-                match encode_all(opc, inst_type, &instruction.operands) {
+                match encode(inst_type, opc, &instruction.operands) {
                     Ok(insn) => result.push(insn),
                     Err(msg) => return Err(msg),
                 }
