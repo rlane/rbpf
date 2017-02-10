@@ -153,7 +153,7 @@ fn encode(inst_type: InstructionType, opc: u8, operands: &[Operand]) -> Result<I
     }
 }
 
-/// XXX
+/// Parse assembly source and translate to a vector of Insn.
 pub fn assemble(src: &str) -> Result<Vec<Insn>, String> {
     let instructions = &try!(parse(src));
     let instruction_map = make_instruction_map();
@@ -166,6 +166,7 @@ pub fn assemble(src: &str) -> Result<Vec<Insn>, String> {
                     Ok(insn) => result.push(insn),
                     Err(msg) => return Err(format!("Failed to encode {}: {}", name, msg)),
                 }
+                // Special case for lddw.
                 if let LoadImm = inst_type {
                     if let Integer(imm) = instruction.operands[1] {
                         result.push(insn(0, 0, 0, 0, imm >> 32).unwrap());
